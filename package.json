@@ -4,8 +4,8 @@
   "version": "1.2.0",
   "description": "A demo app for Tilt",
   "config": {
-    "icon": "dist/icon.png",
-    "image": "dist/image.png"
+    "icon": "icon.png",
+    "image": "image.png"
   },
   "main": "dist/index.html",
   "author": "Scott Lederer",
