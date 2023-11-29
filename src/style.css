@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+    /* remove the extra white space around the page */
+    margin: 0 !important;
+    padding: 0 !important;
+
+    background: #26224d;
+    
+    overflow: hidden;
+
+}
+body::-webkit-scrollbar{display:none;};
+
+canvas {
+    display: block;
+}
+
+@font-face {
+    font-family: Comfortaa;
+    font-weight: normal;
+    src: url(app_data/Comfortaa-Regular.ttf);
+}

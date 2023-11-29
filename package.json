@@ -1,0 +1,28 @@
+{
+  "title": "BT510 Tilt Sensor",
+  "name": "tilt3d-demo-app",
+  "version": "1.1.0",
+  "description": "A demo app for Tilt",
+  "config": {
+    "icon": "dist/icon.png",
+    "image": "dist/image.png"
+  },
+  "main": "dist/index.html",
+  "author": "Scott Lederer",
+  "dependencies": {
+    "@bennybtl/xbit-lib": "^1.0.5",
+    "@fortawesome/fontawesome-free": "^6.5.0",
+    "p5": "1.6.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "vite": "^5.0.0"
+  }
+}

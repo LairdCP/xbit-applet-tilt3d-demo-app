@@ -1,0 +1,9 @@
+{
+  "name": "BT510 Tilt Sensor",
+  "id": "tilt3d-demo-app",
+  "version": "1.0.0",
+  "description": "A demo app for Tilt",
+  "main": "index.html",
+  "author": "Scott Lederer",
+  "image": "icon.png"
+}
