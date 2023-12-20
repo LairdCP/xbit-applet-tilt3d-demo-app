@@ -1,10 +1,10 @@
 /* BT510 3D tilt sensor application script */
 
 import p5 from 'p5/lib/p5';
-import { xbit, ToggleButton, Button } from '@bennybtl/xbit-lib'
+import { xbit, ToggleButton, Button, parseLtvs, hasLtv, bytesToHex, hexToBytes } from '@bennybtl/xbit-lib'
 import AppState from './app-state.store.js'
+import { MovingAverage, updateAxes } from './util.js'
 
-import { parseLtvs, hasLtv, toHexString, hexToBytes, MovingAverage, updateAxes } from './util.js'
 let canvas
 
 p5.disableFriendlyErrors = true // disable FES for improved performance
@@ -64,7 +64,7 @@ const updateDropDownList = () => {
   dropDown.add(optionNone)
 
   sensorsFound.forEach((sensor, i) => {
-    const deviceIdText = toHexString(hexToBytes(sensor.deviceId).reverse()).toUpperCase()
+    const deviceIdText = bytesToHex(hexToBytes(sensor.deviceId).reverse()).toUpperCase()
     const option = document.createElement('option')
     option.text = deviceIdText
     option.value = sensor.deviceId
@@ -332,27 +332,20 @@ const s = (sketch) => {
   })
 
   AppState.scanButton.button.addEventListener('click', () => {
-    AppState.scanButton.toggle()
-    if (AppState.scanButton.state) {
-      xbit.sendCommand({
-        method: 'write',
-        params: {
-          command: 'scanner.start(0)\r\n'
-        }
-      }).then((response) => {
+    if (!AppState.scanButton.state) {
+      xbit.sendStartBluetoothScanningCommand()
+      .then((response) => {
       // this will fire if the command is successful
+        AppState.scanButton.toggle()
         AppState.prevSensorButton.enable()
         AppState.nextSensorButton.enable()
       }).catch((error) => {
         console.error(error)
       })
     } else {
-      xbit.sendCommand({
-        method: 'write',
-        params: {
-          command: 'scanner.stop()\r\n'
-        }
-      }).then((response) => {
+      xbit.sendStopBluetoothScanningCommand()
+      .then((response) => {
+        AppState.scanButton.toggle()
         AppState.prevSensorButton.disable()
         AppState.nextSensorButton.disable()
       }).catch((error) => {
@@ -387,26 +380,25 @@ const s = (sketch) => {
     }
   }
 
-  handleAd = (ad) => {
-    if (!ad) return
-    const vals = ad.trim().split(',')
-    const adDict = {}
-    for (const v of vals) {
-      const kv = v.split('=')
-      adDict[kv[0]] = kv[1]
-    }
-
-    if (adDict.AD) {
-      // Check for Laird mfg id and BT510 tilt sensor protocol ID (0xc9)
-      const ltvMap = parseLtvs(adDict.AD)
-      if (hasLtv('ff', [0x77, 0x00, 0xc9, 0x00], ltvMap)) {
-        if (!('DID' in adDict)) {
-          return
+  handleAd = ({ deviceId, ad }) => {
+    if (ad) {
+      const hexAd = bytesToHex(ad)
+      const ltvMap = parseLtvs(hexAd)
+      let parsedAd = null
+  
+      try {
+        if (ltvMap.ff) {
+          parseManufacturerData(ltvMap.ff).forEach((data) => {
+            parsedAd = Object.assign(parsedAd || {}, data)
+          })
         }
-        // Check to see if a BT510 has been selected. If not, select the first one we see
-        const deviceId = adDict.DID.substring(2, 14).toLowerCase()
-
-        if (!isSensorFound(deviceId)) {
+      } catch (e) {
+        // console.log(e)
+      }
+      // Check for Laird mfg id and BT510 tilt sensor protocol ID (0xc9)
+      const ffLtv = hasLtv('ff', [0x77, 0x00, 0xc9, 0x00], ltvMap)
+      if (ffLtv) {
+          if (!isSensorFound(deviceId)) {
           // Add the sensor to the drop down list
           sensorsFound.push({ deviceId, lastSeen: Date.now() })
           updateDropDownList()
@@ -417,12 +409,10 @@ const s = (sketch) => {
         if (selectedSensor === null) {
           selectedSensor = sensorsFound[sensorsFound.length - 1]
           dropDown.value = selectedSensor.deviceId
-          console.log('selectedSensor', selectedSensor, dropDown.value)
         } else if (deviceId === selectedSensor.deviceId) {
-          const mfgdata = ltvMap.ff
-          axesSeek.x = axesSeek.xm.next(toSigned8(((mfgdata[4]) << 8) | (mfgdata[5])))
-          axesSeek.y = axesSeek.ym.next(toSigned8(((mfgdata[6]) << 8) | (mfgdata[7])))
-          axesSeek.z = axesSeek.zm.next(toSigned8(((mfgdata[8]) << 8) | (mfgdata[9])))
+          axesSeek.x = axesSeek.xm.next(toSigned8(((ffLtv[4]) << 8) | (ffLtv[5])))
+          axesSeek.y = axesSeek.ym.next(toSigned8(((ffLtv[6]) << 8) | (ffLtv[7])))
+          axesSeek.z = axesSeek.zm.next(toSigned8(((ffLtv[8]) << 8) | (ffLtv[9])))
         }
       }
     }
@@ -433,39 +423,34 @@ const myp5 = new p5(s) // eslint-disable-line no-unused-vars, new-cap
 
 // recieve events from the backend
 const eventListenerHandler = (data) => {
-  if (data.method === 'data' && data.params?.data) {
-    if (!AppState.scanButton.state && data.params.data.indexOf('AD=') >= 0) {
+  // if (!AppState.scanButton.state) return
+  if (!AppState.scanButton.state && !AppState.scanStopping) {
       AppState.scanButton.setOn()
-    }
-    if (AppState.scanButton.state) {
-      handleAd(data.params.data)
-    }
   }
-
-  if (data.method === 'setSelected') {
-    // alert the user that the they need a port selected
+  if (AppState.scanButton.state) {
+    handleAd(data.params)
   }
 }
 
-xbit.addEventListener(eventListenerHandler)
+xbit.addEventListener('bluetoothDeviceDiscovered', eventListenerHandler)
 
 window.onunload = () => {
   xbit.removeEventListener(eventListenerHandler)
 }
 
 // check to see if a port is selected and enable / disable the scan button
-xbit.sendCommand({
-  method: 'getSelectedPort'
-}).then((response) => {
-  if (response.result) {
-    AppState.scanButton.enable()
-  } else {
-    AppState.scanButton.disable()
-    // set alert message to select a dongle
-    AppState.alertText = 'No USB adapter selected. Use the drop down above to select one.'
-  }
-}).catch((error) => {
-  console.error(error)
-})
+// xbit.getSelectedPort()
+// .then((response) => {
+//   console.log(response)
+//   if (response.connected) {
+//     AppState.scanButton.enable()
+//   } else {
+//     AppState.scanButton.disable()
+//     // set alert message to select a dongle
+//     AppState.alertText = 'No USB adapter selected. Use the drop down above to select one.'
+//   }
+// }).catch((error) => {
+//   console.error(error)
+// })
 
 // register for events when the selected port changes
