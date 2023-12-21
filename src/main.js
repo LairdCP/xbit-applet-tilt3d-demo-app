@@ -20,7 +20,7 @@ dropDown.addEventListener('change', (e) => {
   if (e.target.value === 'none') {
     selectedSensor = null
   } else {
-    selectedSensor = sensorsFound.find(sensor => sensor.deviceId === e.target.value)
+    selectedSensor = sensorsFound.find(sensor => sensor.deviceAddress === e.target.value)
   }
 })
 
@@ -64,16 +64,16 @@ const updateDropDownList = () => {
   dropDown.add(optionNone)
 
   sensorsFound.forEach((sensor, i) => {
-    const deviceIdText = bytesToHex(hexToBytes(sensor.deviceId).reverse()).toUpperCase()
+    const deviceAddressText = bytesToHex(hexToBytes(sensor.deviceAddress).reverse()).toUpperCase()
     const option = document.createElement('option')
-    option.text = deviceIdText
-    option.value = sensor.deviceId
+    option.text = deviceAddressText
+    option.value = sensor.deviceAddress
     dropDown.add(option)
   })
 
   // if selected, set dropdown to selected sensor
   if (selectedSensor) {
-    dropDown.value = selectedSensor.deviceId
+    dropDown.value = selectedSensor.deviceAddress
   } else {
     dropDown.value = 'none'
   }
@@ -311,7 +311,7 @@ const s = (sketch) => {
       selectedSensor = sensorsFound[sensorsFound.length]
     }
     if (selectedSensor) {
-      dropDown.value = selectedSensor.deviceId
+      dropDown.value = selectedSensor.deviceAddress
     } else {
       dropDown.value = 'none'
     }
@@ -325,7 +325,7 @@ const s = (sketch) => {
       selectedSensor = sensorsFound[0]
     }
     if (selectedSensor) {
-      dropDown.value = selectedSensor.deviceId
+      dropDown.value = selectedSensor.deviceAddress
     } else {
       dropDown.value = 'none'
     }
@@ -362,25 +362,25 @@ const s = (sketch) => {
     return val
   }
 
-  const isSensorFound = (deviceId) => {
+  const isSensorFound = (deviceAddress) => {
     for (const s of sensorsFound) {
-      if (s.deviceId === deviceId) {
+      if (s.deviceAddress === deviceAddress) {
         return true
       }
     }
     return false
   }
 
-  const updateSensorLastSeen = (deviceId) => {
+  const updateSensorLastSeen = (deviceAddress) => {
     for (const s of sensorsFound) {
-      if (s.deviceId === deviceId) {
+      if (s.deviceAddress === deviceAddress) {
         s.lastSeen = Date.now()
         return
       }
     }
   }
 
-  handleAd = ({ deviceId, ad }) => {
+  handleAd = ({ deviceAddress, ad }) => {
     if (ad) {
       const hexAd = bytesToHex(ad)
       const ltvMap = parseLtvs(hexAd)
@@ -398,18 +398,18 @@ const s = (sketch) => {
       // Check for Laird mfg id and BT510 tilt sensor protocol ID (0xc9)
       const ffLtv = hasLtv('ff', [0x77, 0x00, 0xc9, 0x00], ltvMap)
       if (ffLtv) {
-          if (!isSensorFound(deviceId)) {
+          if (!isSensorFound(deviceAddress)) {
           // Add the sensor to the drop down list
-          sensorsFound.push({ deviceId, lastSeen: Date.now() })
+          sensorsFound.push({ deviceAddress, lastSeen: Date.now() })
           updateDropDownList()
         } else {
-          updateSensorLastSeen(deviceId)
+          updateSensorLastSeen(deviceAddress)
         }
 
         if (selectedSensor === null) {
           selectedSensor = sensorsFound[sensorsFound.length - 1]
-          dropDown.value = selectedSensor.deviceId
-        } else if (deviceId === selectedSensor.deviceId) {
+          dropDown.value = selectedSensor.deviceAddress
+        } else if (deviceAddress === selectedSensor.deviceAddress) {
           axesSeek.x = axesSeek.xm.next(toSigned8(((ffLtv[4]) << 8) | (ffLtv[5])))
           axesSeek.y = axesSeek.ym.next(toSigned8(((ffLtv[6]) << 8) | (ffLtv[7])))
           axesSeek.z = axesSeek.zm.next(toSigned8(((ffLtv[8]) << 8) | (ffLtv[9])))
