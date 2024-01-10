@@ -1,16 +1,17 @@
 {
   "title": "BT510 Tilt Sensor",
   "name": "tilt3d-demo-app",
-  "version": "1.3.4",
-  "description": "A demo app for Tilt",
+  "version": "1.3.5",
+  "description": "Tilt Visualization Demo",
   "config": {
+    "full_description": "A 3D visualization for displaying angle of tilt for a Sentrius BT510 sensor based on its internal accelerometer. Sentrius BT510 sensors must be programmed with the tiltad script from the Canvas Python Sample Apps repository.",
     "icon": "icon.png",
     "image": "image.png"
   },
   "main": "dist/index.html",
   "author": "Scott Lederer",
   "dependencies": {
-    "@bennybtl/xbit-lib": "^1.0.11",
+    "@bennybtl/xbit-lib": "^1.0.14",
     "@fortawesome/fontawesome-free": "^6.5.0",
     "p5": "1.6.0"
   },

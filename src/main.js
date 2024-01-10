@@ -343,6 +343,10 @@ const s = (sketch) => {
         console.error(error)
       })
     } else {
+      AppState.scanStopping = true
+      setTimeout(() => {
+        AppState.scanStopping = false
+      }, 1000)
       xbit.sendStopBluetoothScanningCommand()
       .then((response) => {
         AppState.scanButton.toggle()
